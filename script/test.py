@@ -32,10 +32,18 @@ def readUnlabelledData(inputFile):
         sys.exit()
 
 if __name__ == "__main__":
+    debug = False
+    if not debug:
+        input_file = sys.argv[1]
+    else:
+        input_file = "../small_train.txt"
 
-    inputfile = sys.argv[1]
-    ct = CRFTagger()
-    labelled_data = readLabeledData(inputFile=inputfile)
+    training_opt = {'c1': 0.0, 'c2': 1.0}
+    #training_opt = {'c1':0.0, 'c2': 1.0}
+    #traingin_opt = {'c1':1.0', 'c2': 0.0}
+
+    ct = CRFTagger(training_opt = training_opt)
+    labelled_data = readLabeledData(inputFile=input_file)
     ct.train(labelled_data, 'model.crf.tagger')
 
     testfile = "../test.txt"
