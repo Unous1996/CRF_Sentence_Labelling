@@ -1,6 +1,9 @@
 from nltk.tag import CRFTagger
 import os.path
 import sys
+import re
+import unicodedata
+import time
 
 def readLabeledData(inputFile):
     if os.path.isfile(inputFile):
@@ -31,6 +34,101 @@ def readUnlabelledData(inputFile):
             "Error: unlabeled data file %s ddoes not exist" % inputFile)  # We should really be throwing an exception here, but for simplicity's sake, this will suffice.
         sys.exit()
 
+def get_features(tokens, idx):
+
+    token = tokens[idx]
+    
+    feature_list = []
+
+    punc_cat = set(["Pc", "Pd", "Ps", "Pe", "Pi", "Pf", "Po"])
+
+    if idx == len(tokens) - 1:
+        feature_list.append('FIRST_WORD')
+
+    '''
+    if idx > 0:
+        previous_token = tokens[idx-1]
+
+        feature_list.append('PREV_WORD_' + previous_token)
+
+        if previous_token.isupper():
+            feature_list.append('PREVOIOUS_CAPITALIZATION')
+
+            pattern = re.compile(r'\d') 
+
+            if re.search(pattern, token) is not None:
+                feature_list.append('PREVOIS_HAS_NUM')
+
+            if all(unicodedata.category(x) in punc_cat for x in previous_token):
+                feature_list.append('PREVIOUS_PUNCTUATION')
+
+            if len(previous_token) > 1:
+                feature_list.append('PREV_SUF_' + previous_token[-1:])
+
+            if len(previous_token) > 2:
+                feature_list.append('PREV_SUF_' + previous_token[-2:])
+
+            if len(previous_token) > 3:
+                feature_list.append('PREV_SUF_' + previous_token[-3:])
+    
+    
+    if idx < len(tokens)-1:
+        previous_token = tokens[idx+1]
+        
+        feature_list.append('PREV_WORD_' + previous_token)
+
+        if previous_token.isupper():
+            feature_list.append('PREVOIOUS_CAPITALIZATION')
+
+            pattern = re.compile(r'\d') 
+
+            if re.search(pattern, token) is not None:
+                feature_list.append('PREVOIS_HAS_NUM')
+
+            if all(unicodedata.category(x) in punc_cat for x in previous_token):
+                feature_list.append('PREVIOUS_PUNCTUATION')
+
+            if len(previous_token) > 1:
+                feature_list.append('PREV_SUF_' + previous_token[-1:])
+
+            if len(previous_token) > 2:
+                feature_list.append('PREV_SUF_' + previous_token[-2:])
+
+            if len(previous_token) > 3:
+                feature_list.append('PREV_SUF_' + previous_token[-3:])
+    '''
+
+    if not token:
+        return feature_list
+    
+    # Capitalization
+    if token[0].isupper():
+        feature_list.append('CAPITALIZATION')
+    
+    # Number
+    pattern = re.compile(r'\d') 
+
+    if re.search(pattern, token) is not None:
+        feature_list.append('HAS_NUM')
+    
+    # Punctuation
+    if all(unicodedata.category(x) in punc_cat for x in token):
+        feature_list.append('PUNCTUATION')
+    
+    # Suffix up to length 3
+    if len(token) > 1:
+        #feature_list.append('PREF_' + token[0])
+        feature_list.append('SUF_' + token[-1:])
+    if len(token) > 2:
+        #feature_list.append('PREF_' + token[:2])
+        feature_list.append('SUF_' + token[-2:])
+    if len(token) > 3:
+        #feature_list.append('PREF_' + token[:3])
+        feature_list.append('SUF_' + token[-3:])
+    
+    feature_list.append('WORD_' + token)
+    return feature_list
+
 if __name__ == "__main__":
     debug = False
     if not debug:
@@ -38,13 +136,15 @@ if __name__ == "__main__":
     else:
         input_file = "../small_train.txt"
 
-    training_opt = {'c1': 0.0, 'c2': 1.0}
-    #training_opt = {'c1':0.0, 'c2': 1.0}
-    #traingin_opt = {'c1':1.0', 'c2': 0.0}
-
-    ct = CRFTagger(training_opt = training_opt)
+    ct = CRFTagger(feature_func = get_features)
     labelled_data = readLabeledData(inputFile=input_file)
+    start = time.time()
     ct.train(labelled_data, 'model.crf.tagger')
+    end = time.time() 
+
+    elapsed = end - start
+
+    print("Total training time = ", elapsed)
 
     testfile = "../test.txt"
     test_data = readUnlabelledData(inputFile=testfile)
